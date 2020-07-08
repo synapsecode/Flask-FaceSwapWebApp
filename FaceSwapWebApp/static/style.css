@@ -1,0 +1,41 @@
+body{
+	text-align: center;
+	padding: 20px;
+	background-image: url("https://imagekit.io/static/img/newPages/homepage-wave-bg.svg");
+    background-color: crimson;
+    background-blend-mode: multiply;
+	color: white;
+}
+
+.imggroup{
+	background-color: rgba(16, 16, 16, 0.623);
+	padding: 20px;
+	display: flex;
+	justify-content: space-between;
+	height: 445px;
+	color: white;
+}
+
+.rimg, .limg{
+	background-color: rgb(32, 32, 32);
+	padding: 10px;
+	
+}
+
+.inimg{
+	/* height: 240px;
+	width: 400px; */
+	height: 240px;
+	width: 400px;
+	border: 2px solid wheat;
+	margin-bottom: 20px;
+	object-fit: contain;
+}
+
+.upbtn{
+	margin-top: -5px;
+}
+
+.tit{
+	margin-bottom: 40px;
+}
