@@ -1,8 +1,8 @@
 from flask import render_template, url_for, request, send_file, flash
-from FaceSwapWebApp import app
-from FaceSwapWebApp.forms import MainForm
-import FaceSwapWebApp.Swap as Swap
-from FaceSwapWebApp.Swap import NoFaceException, MoreThanOneFaceException
+from FaceSwapApp import app
+from FaceSwapApp.forms import MainForm
+import FaceSwapApp.Swap as Swap
+from FaceSwapApp.Swap import NoFaceException, MoreThanOneFaceException
 import os
 app.secret_key = "NF484j33hSDDJFH9s83nb"
 @app.route("/", methods=['GET', 'POST'])
@@ -15,8 +15,8 @@ def homepage():
 		mf = request.files['main_file']
 		sf = request.files['second_file']
 		try:
-			mf.save(f"{os.getcwd()}\FaceSwapWebApp\static\input\{mf.filename}")
-			sf.save(f"{os.getcwd()}\FaceSwapWebApp\static\input\{sf.filename}")
+			mf.save(f"{os.getcwd()}\FaceSwapApp\static\input\{mf.filename}")
+			sf.save(f"{os.getcwd()}\FaceSwapApp\static\input\{sf.filename}")
 		except FileNotFoundError:
 			print("Input file not supplied")
 			flash("Please Reload the images and submit", "danger")
@@ -30,8 +30,8 @@ def homepage():
 		#Merge Faces
 		#Swap
 		try:
-			Swap.main(f"{os.getcwd()}\FaceSwapWebApp\static\input\{mf.filename}",
-					f"{os.getcwd()}\FaceSwapWebApp\static\input\{sf.filename}")
+			Swap.main(f"{os.getcwd()}\FaceSwapApp\static\input\{mf.filename}",
+					f"{os.getcwd()}\FaceSwapApp\static\input\{sf.filename}")
 		except Swap.NoFaceException:
 			print("A Face could not be detected!")
 			flash("A Face could not be detected! Only human faces are detected", "danger")
@@ -59,4 +59,4 @@ def homepage():
 @app.route("/download/<fn>")
 def download(fn):
 	print("Download request recieved")
-	return send_file(f"{os.getcwd()}\FaceSwapWebApp\static\output\{fn}.jpg", as_attachment=True, mimetype="image/jpeg")
+	return send_file(f"{os.getcwd()}\FaceSwapApp\static\output\{fn}.jpg", as_attachment=True, mimetype="image/jpeg")

@@ -16,7 +16,7 @@ def main(image1, image2):
     import time
     import os
 
-    PREDICTOR_PATH = f"{os.getcwd()}\FaceSwapWebApp\shape_predictor_68_face_landmarks.dat"
+    PREDICTOR_PATH = f"{os.getcwd()}\FaceSwapApp\shape_predictor_68_face_landmarks.dat"
     print(PREDICTOR_PATH)
     SCALE_FACTOR = 1
     FEATHER_AMOUNT = 11
@@ -183,6 +183,6 @@ def main(image1, image2):
     #              "_2.jpg"), annotate_landmarks(im2, landmarks2))
 
     # saving
-    path = f"{os.getcwd()}\FaceSwapWebApp\static\output\{str(image1)}-{str(image2)}.jpg"  # Generates a random path
+    path = f"{os.getcwd()}\FaceSwapApp\static\output\{str(image1)}-{str(image2)}.jpg"  # Generates a random path
     cv2.imwrite(path, output_im)  # saves the image to the path
     print("Output added to path: " + path)
