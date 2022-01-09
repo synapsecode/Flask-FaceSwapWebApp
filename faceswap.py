@@ -4,22 +4,22 @@ class MoreThanOneFaceException(Exception):
 class NoFaceException(Exception):
     pass
 
-def main(image1, image2):
-        # import dependencies
-    
+def swap(image1, image2):
+    # import dependencies
     print("Started Swap")
 
     import cv2
     import dlib
     import numpy as np
-    from PIL import Image
-    import time
     import os
+
+    print("Loaded Dependencies")
 
     PREDICTOR_PATH = f"{os.getcwd()}\FaceSwapApp\shape_predictor_68_face_landmarks.dat"
     print(PREDICTOR_PATH)
     SCALE_FACTOR = 1
     FEATHER_AMOUNT = 11
+    
 
     FACE_POINTS = list(range(17, 68))
     MOUTH_POINTS = list(range(48, 61))
@@ -175,6 +175,13 @@ def main(image1, image2):
         return os.path.splitext(os.path.basename(image1))[0], os.path.splitext(os.path.basename(image2))[0]
 
     image1, image2 = ReturnName(image1, image2)
+    # saving
+    path = f"{os.getcwd()}\FaceSwapApp\static\output\{str(image1)}-{str(image2)}.jpg"  # Generates a random path
+    cv2.imwrite(path, output_im)  # saves the image to the path
+    print("Output added to path: " + path)
+
+
+
     
     # # face annotations
     # cv2.imwrite(("output/ANN/" + str(image1) + "_" + str(image2) +
@@ -182,7 +189,4 @@ def main(image1, image2):
     # cv2.imwrite(("output/ANN/" + str(image1) + "_" + str(image2) +
     #              "_2.jpg"), annotate_landmarks(im2, landmarks2))
 
-    # saving
-    path = f"{os.getcwd()}\FaceSwapApp\static\output\{str(image1)}-{str(image2)}.jpg"  # Generates a random path
-    cv2.imwrite(path, output_im)  # saves the image to the path
-    print("Output added to path: " + path)
+    

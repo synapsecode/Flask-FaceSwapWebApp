@@ -1,0 +1,34 @@
+wget -O opencv.zip https://github.com/opencv/opencv/archive/4.5.0.zip
+wget -O opencv_contrib.zip https://github.com/opencv/opencv_contrib/archive/4.5.0.zip
+unzip opencv.zip
+unzip opencv_contrib.zip
+cd opencv-4.5.0
+mkdir build && cd build
+
+cmake \
+  -DCMAKE_SYSTEM_PROCESSOR=arm64 \
+  -DCMAKE_OSX_ARCHITECTURES=arm64 \
+  -DWITH_OPENJPEG=OFF \
+  -DWITH_IPP=OFF \
+  -D CMAKE_BUILD_TYPE=RELEASE \
+  -D CMAKE_INSTALL_PREFIX=/usr/local \
+  -D OPENCV_EXTRA_MODULES_PATH=/Volumes/ExternalSSD/Programming/Flask/FaceSwapApp/FaceSwapApp/CV2/opencv_contrib-4.5.0/modules \
+  -D PYTHON3_EXECUTABLE=/Volumes/ExternalSSD/Programming/Flask/FaceSwapApp/venv/bin/python3 \
+  -D BUILD_opencv_python2=OFF \
+  -D BUILD_opencv_python3=ON \
+  -D INSTALL_PYTHON_EXAMPLES=ON \
+  -D INSTALL_C_EXAMPLES=OFF \
+  -D OPENCV_ENABLE_NONFREE=ON \
+  -D BUILD_EXAMPLES=ON ..
+
+make
+
+sudo make install
+
+mdfind cv2.cpython & you get a few paths (select first (1))
+
+cd /Volumes/ExternalSSD/Programming/Flask/FaceSwapApp/venv/lib/python3.10/site-packages
+
+ln -s /usr/local/lib/python3.10/site-packages/cv2/python-3.10/cv2.cpython-310-darwin.so cv2.so
+
+
