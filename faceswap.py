@@ -1,55 +1,59 @@
-class MoreThanOneFaceException(Exception):
-    pass
+import cv2
+import dlib
+import numpy as np
+import os
 
-class NoFaceException(Exception):
-    pass
+class MoreThanOneFaceException(Exception): pass
+class NoFaceException(Exception): pass
 
-def swap(image1, image2):
-    # import dependencies
-    print("Started Swap")
+class FaceSwap:
+    # ================================== CONSTANTS =====================================
 
-    import cv2
-    import dlib
-    import numpy as np
-    import os
+    PREDICTOR_PATH = f"{os.getcwd()}/shape_predictor_68_face_landmarks.dat"
 
-    print("Loaded Dependencies")
-
-    PREDICTOR_PATH = f"{os.getcwd()}\FaceSwapApp\shape_predictor_68_face_landmarks.dat"
-    print(PREDICTOR_PATH)
+    #Execution Constants
     SCALE_FACTOR = 1
     FEATHER_AMOUNT = 11
-    
+    COLOUR_CORRECT_BLUR_FRAC = 0.6
 
-    FACE_POINTS = list(range(17, 68))
+    #Face Structure Declarations
     MOUTH_POINTS = list(range(48, 61))
     RIGHT_BROW_POINTS = list(range(17, 22))
     LEFT_BROW_POINTS = list(range(22, 27))
     RIGHT_EYE_POINTS = list(range(36, 42))
     LEFT_EYE_POINTS = list(range(42, 48))
     NOSE_POINTS = list(range(27, 35))
-    JAW_POINTS = list(range(0, 17))
 
     # Points used to line up the images.
-    ALIGN_POINTS = (LEFT_BROW_POINTS + RIGHT_EYE_POINTS + LEFT_EYE_POINTS +
-                    RIGHT_BROW_POINTS + NOSE_POINTS + MOUTH_POINTS)
+    ALIGN_POINTS = (
+        LEFT_BROW_POINTS + 
+        RIGHT_EYE_POINTS + 
+        LEFT_EYE_POINTS +
+        RIGHT_BROW_POINTS + 
+        NOSE_POINTS + 
+        MOUTH_POINTS
+    )
 
     # Points from the second image to overlay on the first. The convex hull of each
     # element will be overlaid.
     OVERLAY_POINTS = [
-        LEFT_EYE_POINTS + RIGHT_EYE_POINTS + LEFT_BROW_POINTS + RIGHT_BROW_POINTS,
-        NOSE_POINTS + MOUTH_POINTS,
+        LEFT_EYE_POINTS + 
+        RIGHT_EYE_POINTS + 
+        LEFT_BROW_POINTS + 
+        RIGHT_BROW_POINTS,
+        NOSE_POINTS + 
+        MOUTH_POINTS,
     ]
 
-    # Amount of blur to use during colour correction, as a fraction of the
-    # pupillary distance.
-    COLOUR_CORRECT_BLUR_FRAC = 0.6
-
+    #Runtime Variables
     detector = dlib.get_frontal_face_detector()
     predictor = dlib.shape_predictor(PREDICTOR_PATH)
+    
+    # =================================================================================
 
-    def get_landmarks(im):
-        rects = detector(im, 1)
+
+    def get_landmarks(self, im):
+        rects = self.detector(im, 1)
 
         if len(rects) > 1:
             print("There seems to be more than one face in the picture!")
@@ -58,47 +62,35 @@ def swap(image1, image2):
             print("Could not detect any faces!")
             raise NoFaceException
 
-        return np.matrix([[p.x, p.y] for p in predictor(im, rects[0]).parts()])
+        return np.matrix([[p.x, p.y] for p in self.predictor(im, rects[0]).parts()])
 
-    def annotate_landmarks(im, landmarks):
-        im = im.copy()
-        for idx, point in enumerate(landmarks):
-            pos = (point[0, 0], point[0, 1])
-            cv2.putText(im, str(idx), pos,
-                        fontFace=cv2.FONT_HERSHEY_SCRIPT_SIMPLEX,
-                        fontScale=0.4,
-                        color=(0, 0, 255))
-            cv2.circle(im, pos, 3, color=(0, 255, 255))
-        return im
-
-    def draw_convex_hull(im, points, color):
+    def draw_convex_hull(self, im, points, color):
         points = cv2.convexHull(points)
         cv2.fillConvexPoly(im, points, color=color)
 
-    def get_face_mask(im, landmarks):
+    def get_face_mask(self, im, landmarks):
         im = np.zeros(im.shape[:2], dtype=np.float64)
 
-        for group in OVERLAY_POINTS:
-            draw_convex_hull(im,
+        for group in self.OVERLAY_POINTS:
+            self.draw_convex_hull(im,
                              landmarks[group],
                              color=1)
 
         im = np.array([im, im, im]).transpose((1, 2, 0))
 
-        im = (cv2.GaussianBlur(im, (FEATHER_AMOUNT, FEATHER_AMOUNT), 0) > 0) * 1.0
-        im = cv2.GaussianBlur(im, (FEATHER_AMOUNT, FEATHER_AMOUNT), 0)
+        im = (cv2.GaussianBlur(im, (self.FEATHER_AMOUNT, self.FEATHER_AMOUNT), 0) > 0) * 1.0
+        im = cv2.GaussianBlur(im, (self.FEATHER_AMOUNT, self.FEATHER_AMOUNT), 0)
         return im
 
-    def transformation_from_points(points1, points2):
+    def transformation_from_points(self, points1, points2):
         """
         Return an affine transformation [s * R | T] such that:
-            sum ||s*R*p1,i + T - p2,i||^2
-        is minimized.
+            sum ||s*R*p1,i + T - p2,i||^2  is minimized.
+
+        Solve the procrustes problem by subtracting centroids, scaling by the
+        standard deviation, and then using the SVD to calculate the rotation.
+        More Details: https://en.wikipedia.org/wiki/Orthogonal_Procrustes_problem
         """
-        # Solve the procrustes problem by subtracting centroids, scaling by the
-        # standard deviation, and then using the SVD to calculate the rotation. See
-        # the following for more details:
-        #   https://en.wikipedia.org/wiki/Orthogonal_Procrustes_problem
 
         points1 = points1.astype(np.float64)
         points2 = points2.astype(np.float64)
@@ -117,32 +109,40 @@ def swap(image1, image2):
 
         R = (U * Vt).T
 
-        return np.vstack([np.hstack(((s2 / s1) * R,
-                                           c2.T - (s2 / s1) * R * c1.T)),
-                             np.matrix([0., 0., 1.])])
+        return np.vstack([
+                np.hstack(
+                    (
+                        (s2 / s1) * R,
+                        c2.T - (s2 / s1) * R * c1.T,
+                    )
+                ),
+                np.matrix([0., 0., 1.])
+            ])
 
-    def read_im_and_landmarks(fname):
+    def read_im_and_landmarks(self, fname):
         im = cv2.imread(fname, cv2.IMREAD_COLOR)
-        im = cv2.resize(im, (im.shape[1] * SCALE_FACTOR,
-                             im.shape[0] * SCALE_FACTOR))
-        s = get_landmarks(im)
+        im = cv2.resize(im, (im.shape[1] * self.SCALE_FACTOR,
+                             im.shape[0] * self.SCALE_FACTOR))
+        s = self.get_landmarks(im)
 
         return im, s
 
-    def warp_im(im, M, dshape):
+    def warp_im(self, im, M, dshape):
         output_im = np.zeros(dshape, dtype=im.dtype)
-        cv2.warpAffine(im,
-                       M[:2],
-                       (dshape[1], dshape[0]),
-                       dst=output_im,
-                       borderMode=cv2.BORDER_TRANSPARENT,
-                       flags=cv2.WARP_INVERSE_MAP)
+        cv2.warpAffine(
+            im,
+            M[:2],
+            (dshape[1], dshape[0]),
+            dst=output_im,
+            borderMode=cv2.BORDER_TRANSPARENT,
+            flags=cv2.WARP_INVERSE_MAP
+        )
         return output_im
 
-    def correct_colours(im1, im2, landmarks1):
-        blur_amount = COLOUR_CORRECT_BLUR_FRAC * np.linalg.norm(
-            np.mean(landmarks1[LEFT_EYE_POINTS], axis=0) -
-            np.mean(landmarks1[RIGHT_EYE_POINTS], axis=0))
+    def correct_colours(self, im1, im2, landmarks1):
+        blur_amount = self.COLOUR_CORRECT_BLUR_FRAC * np.linalg.norm(
+            np.mean(landmarks1[self.LEFT_EYE_POINTS], axis=0) -
+            np.mean(landmarks1[self.RIGHT_EYE_POINTS], axis=0))
         blur_amount = int(blur_amount)
         if blur_amount % 2 == 0:
             blur_amount += 1
@@ -154,39 +154,47 @@ def swap(image1, image2):
 
         return (im2.astype(np.float64) * im1_blur.astype(np.float64) /
                 im2_blur.astype(np.float64))
-    im1, landmarks1 = read_im_and_landmarks(str(image1))
-    im2, landmarks2 = read_im_and_landmarks(str(image2))
-
-    M = transformation_from_points(landmarks1[ALIGN_POINTS],
-                                   landmarks2[ALIGN_POINTS])
-
-    mask = get_face_mask(im2, landmarks2)
-    warped_mask = warp_im(mask, M, im1.shape)
-    combined_mask = np.max([get_face_mask(im1, landmarks1), warped_mask],
-                              axis=0)
-
-    warped_im2 = warp_im(im2, M, im1.shape)
-    warped_corrected_im2 = correct_colours(im1, warped_im2, landmarks1)
-
-    output_im = im1 * (1.0 - combined_mask) + \
-        warped_corrected_im2 * combined_mask
-
-    def ReturnName(image1, image2):
-        return os.path.splitext(os.path.basename(image1))[0], os.path.splitext(os.path.basename(image2))[0]
-
-    image1, image2 = ReturnName(image1, image2)
-    # saving
-    path = f"{os.getcwd()}\FaceSwapApp\static\output\{str(image1)}-{str(image2)}.jpg"  # Generates a random path
-    cv2.imwrite(path, output_im)  # saves the image to the path
-    print("Output added to path: " + path)
-
-
-
     
-    # # face annotations
-    # cv2.imwrite(("output/ANN/" + str(image1) + "_" + str(image2) +
-    #              "_1.jpg"), annotate_landmarks(im1, landmarks1))
-    # cv2.imwrite(("output/ANN/" + str(image1) + "_" + str(image2) +
-    #              "_2.jpg"), annotate_landmarks(im2, landmarks2))
-
+    def generate_name(self, p1, p2):
+        return os.path.splitext(os.path.basename(p1))[0], os.path.splitext(os.path.basename(p2))[0]
     
+    def __init__(self, image1, image2):
+        print("Started Swap")
+
+        im1, landmarks1 = self.read_im_and_landmarks(str(image1))
+        im2, landmarks2 = self.read_im_and_landmarks(str(image2))
+        M = self.transformation_from_points(
+            landmarks1[self.ALIGN_POINTS],
+            landmarks2[self.ALIGN_POINTS]
+        )
+        mask = self.get_face_mask(im2, landmarks2)
+        warped_mask = self.warp_im(mask, M, im1.shape)
+
+        mask = self.get_face_mask(im2, landmarks2)
+        warped_mask = self.warp_im(mask, M, im1.shape)
+        combined_mask = np.max(
+            [
+                self.get_face_mask(im1, landmarks1), 
+                warped_mask,
+            ],
+            axis=0,
+        )
+
+        warped_im2 = self.warp_im(im2, M, im1.shape)
+        warped_corrected_im2 = self.correct_colours(im1, warped_im2, landmarks1)
+
+        output_im = im1 * (1.0 - combined_mask) + \
+                    warped_corrected_im2 * combined_mask
+
+        i1, i2 = self.generate_name(image1, image2)
+        path = os.path.join(os.getcwd(), 'static', 'output', f'{i1}-{i2}.jpg')
+        cv2.imwrite(path, output_im)  # saves the image to the path
+        print(f"Output Added to Path: {path}")
+    
+   
+
+#Running Swap Directly
+if(__name__ == '__main__'):
+    img1 = '/Volumes/ExternalSSD/Downloads/OLD Downloads/FAin446UUAsaW2q.jpeg'
+    img2 = '/Volumes/ExternalSSD/Downloads/OLD Downloads/hy_LpnSs_400x400.jpg'
+    FaceSwap(image1=img1, image2=img2)
