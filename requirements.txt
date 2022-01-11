@@ -1,6 +1,5 @@
 asgiref==3.4.1
 click==8.0.3
-Django==4.0.1
 dlib==19.22.1
 Flask==2.0.2
 Flask-WTF==1.0.0
@@ -13,4 +12,4 @@ six==1.16.0
 sqlparse==0.4.2
 Werkzeug==2.0.2
 WTForms==3.0.1
-# cv2==4.5.0 (Should be manually installed on AppleSilicon)
+#cv2==4.5.0 (Should be manually installed on AppleSilicon)
